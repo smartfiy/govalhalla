@@ -1,0 +1,5 @@
+codebase.md
+gitignore
+test/data/*
+
+shell.nix
