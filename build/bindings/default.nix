@@ -1,31 +1,70 @@
 # build/bindings/default.nix
-{ lib
-, stdenv
-, swig
-, boost179
-, geos
-, cmake
-, zlib
-, protobuf
-, lz4
-, go
-, pkg-config
-, fetchFromGitHub
-, sqlite
+{
+  lib,
+  fetchpatch,
+  stdenv,
+  swig,
+  boost179,
+  boost,
+  curl,
+  libspatialite,
+  luajit,
+  prime-server,
+  python3,
+  zeromq,
+  testers,
+  geos,
+  cmake,
+  zlib,
+  protobuf,
+  lz4,
+  go,
+  pkg-config,
+  fetchFromGitHub,
+  sqlite,
 }:
 
 let
-  valhalla = (import ./valhalla) { inherit stdenv lib fetchFromGitHub cmake zlib boost179 protobuf sqlite pkg-config geos lz4; };
+  valhalla = (import ./valhalla) {
+    inherit
+      lib
+      stdenv
+      fetchFromGitHub
+      fetchpatch
+      cmake
+      pkg-config
+      boost
+      curl
+      geos
+      libspatialite
+      luajit
+      prime-server
+      protobuf
+      python3
+      sqlite
+      zeromq
+      zlib
+      testers
+      lz4
+      ;
+  };
 
 in
 
 stdenv.mkDerivation {
-  pname = "govalhalla"; #"govalhalla-${valhallaCustom.rev}";
+  pname = "govalhalla"; # "govalhalla-${valhallaCustom.rev}";
   version = "0.0.1";
   src = ./.;
 
-  nativeBuildInputs = [ swig];
-  buildInputs = [ valhalla go protobuf zlib boost179 stdenv.cc.cc.lib];
+  nativeBuildInputs = [ swig ];
+  buildInputs = [
+    valhalla
+    go
+    protobuf
+    zlib
+    boost179
+    stdenv.cc.cc.lib
+  ];
 
   # preBuildPhase = ''
   #   export PKG_CONFIG_PATH=${pkgs.valhalla}/lib/pkgconfig:$PKG_CONFIG_PATH
@@ -34,57 +73,57 @@ stdenv.mkDerivation {
   buildPhase = ''
 
 
-    # Debug: Show current directory and contents
-    echo "Current directory: $PWD"
-    echo "Parent directory contents:"
-    echo "GOPATH: $GOPATH"
-    # echo "Go version: $(go version)"
-    export GOPATH=$PWD/go
-    ls -l ${valhalla}/lib
-    # ls -l ${valhalla}/include/valhalla/third_party/
-    
+      # Debug: Show current directory and contents
+      echo "Current directory: $PWD"
+      echo "Parent directory contents:"
+      echo "GOPATH: $GOPATH"
+      # echo "Go version: $(go version)"
+      export GOPATH=$PWD/go
+      ls -l ${valhalla}/lib
+      # ls -l ${valhalla}/include/valhalla/third_party/
+      
 
-    # Generate SWIG bindings
-    echo "Generating SWIG bindings: ${swig}/share/swig/${swig.version}"
-    echo "Compiler : $CXX"
-    
+      # Generate SWIG bindings
+      echo "Generating SWIG bindings: ${swig}/share/swig/${swig.version}"
+      echo "Compiler : $CXX"
+      
 
-  ${swig}/bin/swig -c++ -v -go -cgo -intgosize 64 \
-    -I${valhalla}/include \
-    -I${swig}/share/swig/${swig.version} \
-    -package govalhalla \
-    -use-shlib \
-    -o govalhalla_wrap.cxx \
-    valhalla.i
-    
-    
-
-    # Compile shared library
-    echo "wrapping shared library cd src ....."
-    
-
-    $CXX -fPIC -c govalhalla_wrap.cxx \
-      -I. \
+    ${swig}/bin/swig -c++ -v -go -cgo -intgosize 64 \
       -I${valhalla}/include \
-      -I${valhalla}/include/valhalla/third_party  \
-      -I${protobuf}/include \
-      -I${go}/share/go/src/runtime/cgo \
-      -I${boost179}/include \
-      -I${zlib}/include \
-      -std=c++17 
+      -I${swig}/share/swig/${swig.version} \
+      -package govalhalla \
+      -use-shlib \
+      -o govalhalla_wrap.cxx \
+      valhalla.i
+      
+      
 
-    echo "Compiling shared library cd src ....."
+      # Compile shared library
+      echo "wrapping shared library cd src ....."
+      
 
-    ls -l
+      $CXX -fPIC -c govalhalla_wrap.cxx \
+        -I. \
+        -I${valhalla}/include \
+        -I${valhalla}/include/valhalla/third_party  \
+        -I${protobuf}/include \
+        -I${go}/share/go/src/runtime/cgo \
+        -I${boost179}/include \
+        -I${zlib}/include \
+        -std=c++17 
 
-    $CXX -shared govalhalla_wrap.o \
-      -o libvalhalla_go.so \
-      -Wl,--whole-archive -L${valhalla}/lib -lvalhalla -Wl,--no-whole-archive \
-      -L${protobuf}/lib \
-      -L${boost179}/lib \
-      -std=c++17 \
-      -Wl,-Bdynamic -lpthread -lz -lprotobuf -lboost_system -lboost_filesystem\
-      -Wl,--verbose
+      echo "Compiling shared library cd src ....."
+
+      ls -l
+
+      $CXX -shared govalhalla_wrap.o \
+        -o libvalhalla_go.so \
+        -Wl,--whole-archive -L${valhalla}/lib -lvalhalla -Wl,--no-whole-archive \
+        -L${protobuf}/lib \
+        -L${boost179}/lib \
+        -std=c++17 \
+        -Wl,-Bdynamic -lpthread -lz -lprotobuf -lboost_system -lboost_filesystem\
+        -Wl,--verbose
   '';
 
   installPhase = ''
