@@ -8,12 +8,7 @@
   boost,
   curl,
   geos,
-  libspatialite,
-  luajit,
-  prime-server,
   protobuf,
-  python3,
-  sqlite,
   zeromq,
   zlib,
   testers,
@@ -39,11 +34,6 @@ stdenv.mkDerivation (finalAttrs: {
     #  hash = "sha256-xCufmXHGj1JxaMwm64JT9FPY+o0+x4glfJSYLdvHI8U=";
     # })
   ];
-
-  postPatch = ''
-    substituteInPlace src/bindings/python/CMakeLists.txt \
-      --replace "\''${Python_SITEARCH}" "${placeholder "out"}/${python3.sitePackages}"
-  '';
 
   nativeBuildInputs = [
     cmake
@@ -75,12 +65,7 @@ stdenv.mkDerivation (finalAttrs: {
     boost
     curl
     geos
-    libspatialite
-    luajit
-    prime-server
     protobuf
-    python3
-    sqlite
     zeromq
     zlib
     lz4

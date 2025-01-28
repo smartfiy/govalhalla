@@ -7,10 +7,6 @@
   boost179,
   boost,
   curl,
-  libspatialite,
-  luajit,
-  prime-server,
-  python3,
   zeromq,
   testers,
   geos,
@@ -21,7 +17,6 @@
   go,
   pkg-config,
   fetchFromGitHub,
-  sqlite,
 }:
 
 let
@@ -36,12 +31,7 @@ let
       boost
       curl
       geos
-      libspatialite
-      luajit
-      prime-server
       protobuf
-      python3
-      sqlite
       zeromq
       zlib
       testers

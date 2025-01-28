@@ -15,10 +15,6 @@ pkgs.callPackage ./bindings # { inherit pkgs; }
       boost179
       boost
       curl
-      libspatialite
-      luajit
-      prime-server
-      python3
       zeromq
       testers
       geos
@@ -29,7 +25,6 @@ pkgs.callPackage ./bindings # { inherit pkgs; }
       go
       pkg-config
       fetchFromGitHub
-      sqlite
       ;
     # swig = nixpkgs.swig; # Set the SWIG version to 4.0.2
     # protobuf = nixpkgs.protobuf;
