@@ -1,5 +1,6 @@
 codebase.md
 gitignore
+*/result/
 test/data/*
 
 shell.nix
