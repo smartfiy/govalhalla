@@ -1,22 +1,8 @@
 let
-    pkgs = import (builtins.fetchGit {
-
-        #name = "nixpkgs";
-        url = "https://github.com/NixOS/nixpkgs";
-        ref = "nixos-24.11";
-        rev = "e24b4c09e963677b1beea49d411cd315a024ad3a"; 
-    }){
-
-    };
-
-
+  pkgs = import (builtins.fetchGit {
+    url = "https://github.com/NixOS/nixpkgs";
+    ref = "nixos-unstable";
+    rev = "9abb87b552b7f55ac8916b6fc9e5cb486656a2f3";
+  }) { };
 in
-pkgs.callPackage ./bindings #{ inherit pkgs; }
-{
-  inherit (pkgs)
-    lib stdenv  cmake fetchFromGitHub zlib
-    boost179 pkg-config sqlite geos lz4 swig protobuf go;
-    # swig = nixpkgs.swig; # Set the SWIG version to 4.0.2    
-    # protobuf = nixpkgs.protobuf;
-  
-}
+pkgs.callPackage ./bindings { }
