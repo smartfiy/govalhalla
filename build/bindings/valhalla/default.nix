@@ -5,7 +5,7 @@
   fetchpatch,
   cmake,
   pkg-config,
-  boost,
+  boost179,
   curl,
   geos,
   protobuf,
@@ -62,7 +62,7 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   buildInputs = [
-    boost
+    boost179
     curl
     geos
     protobuf

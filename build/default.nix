@@ -13,7 +13,6 @@ pkgs.callPackage ./bindings # { inherit pkgs; }
       stdenv
       swig
       boost179
-      boost
       curl
       zeromq
       testers

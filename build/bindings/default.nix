@@ -5,7 +5,6 @@
   stdenv,
   swig,
   boost179,
-  boost,
   curl,
   zeromq,
   testers,
@@ -28,7 +27,7 @@ let
       fetchpatch
       cmake
       pkg-config
-      boost
+      boost179
       curl
       geos
       protobuf
