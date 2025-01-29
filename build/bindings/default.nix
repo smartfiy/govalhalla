@@ -1,43 +1,14 @@
-# build/bindings/default.nix
 {
-  lib,
-  fetchpatch,
-  stdenv,
-  swig,
-  boost179,
-  curl,
-  zeromq,
-  testers,
-  geos,
-  cmake,
-  zlib,
-  protobuf,
-  lz4,
-  go,
-  pkg-config,
-  fetchFromGitHub,
+  pkgs ? import <nixpkgs> { },
 }:
 
-let
-  valhalla = (import ./valhalla) {
-    inherit
-      lib
-      stdenv
-      fetchFromGitHub
-      fetchpatch
-      cmake
-      pkg-config
-      boost179
-      curl
-      geos
-      protobuf
-      zeromq
-      zlib
-      testers
-      lz4
-      ;
-  };
+with pkgs;
 
+let
+  valhalla = (import ./valhalla) { };
+  protobuf = pkgsStatic.protobuf;
+  zlib = pkgsStatic.zlib;
+  boost179 = pkgsStatic.boost179;
 in
 
 stdenv.mkDerivation {

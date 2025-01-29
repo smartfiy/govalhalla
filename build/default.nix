@@ -1,30 +1,8 @@
 let
   pkgs = import (builtins.fetchGit {
     url = "https://github.com/NixOS/nixpkgs";
-    ref = "nixos-24.11";
-    rev = "e24b4c09e963677b1beea49d411cd315a024ad3a";
+    ref = "nixos-unstable";
+    rev = "9abb87b552b7f55ac8916b6fc9e5cb486656a2f3";
   }) { };
 in
-pkgs.callPackage ./bindings # { inherit pkgs; }
-  {
-    inherit (pkgs)
-      lib
-      fetchpatch
-      stdenv
-      swig
-      boost179
-      curl
-      zeromq
-      testers
-      geos
-      cmake
-      zlib
-      protobuf
-      lz4
-      go
-      pkg-config
-      fetchFromGitHub
-      ;
-    # swig = nixpkgs.swig; # Set the SWIG version to 4.0.2
-    # protobuf = nixpkgs.protobuf;
-  }
+pkgs.callPackage ./bindings { }

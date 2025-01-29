@@ -1,5 +1,6 @@
 codebase.md
 gitignore
+result
 build/result
 build/bindings/result
 build/bindings/valhalla/result

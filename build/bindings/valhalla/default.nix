@@ -1,19 +1,8 @@
 {
-  lib,
-  stdenv,
-  fetchFromGitHub,
-  fetchpatch,
-  cmake,
-  pkg-config,
-  boost179,
-  curl,
-  geos,
-  protobuf,
-  zeromq,
-  zlib,
-  testers,
-  lz4,
+  pkgs ? import <nixpkgs> { },
 }:
+
+with pkgs;
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "valhalla";
@@ -27,17 +16,17 @@ stdenv.mkDerivation (finalAttrs: {
     fetchSubmodules = true;
   };
 
-  patches = [
-    # Fix build
-    #(fetchpatch {
-    #  url = "https://github.com/valhalla/valhalla/commit/e4845b68e8ef8de9eabb359b23bf34c879e21f2b.patch";
-    #  hash = "sha256-xCufmXHGj1JxaMwm64JT9FPY+o0+x4glfJSYLdvHI8U=";
-    # })
-  ];
-
   nativeBuildInputs = [
     cmake
     pkg-config
+  ];
+
+  buildInputs = [
+    pkgsStatic.boost179
+    pkgsStatic.geos
+    pkgsStatic.protobuf
+    pkgsStatic.zlib
+    pkgsStatic.lz4
   ];
 
   cmakeFlags = [
@@ -59,16 +48,6 @@ stdenv.mkDerivation (finalAttrs: {
   env.NIX_CFLAGS_COMPILE = toString [
     # Needed for date submodule with GCC 12 https://github.com/HowardHinnant/date/issues/750
     "-Wno-error=stringop-overflow"
-  ];
-
-  buildInputs = [
-    boost179
-    curl
-    geos
-    protobuf
-    zeromq
-    zlib
-    lz4
   ];
 
   postFixup = ''
