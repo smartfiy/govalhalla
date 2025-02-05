@@ -1,21 +1,21 @@
-# build/bindings/default.nix
-{ lib
-, stdenv
-, swig
-, boost179
-, geos
-, cmake
-, zlib
-, protobuf
-, lz4
-, go
-, pkg-config
-, fetchFromGitHub
-, sqlite
-}:
+{
+  pkgs ? import <nixpkgs> { },
+}: with pkgs;
 
 let
-  valhalla = (import ./valhalla) { inherit stdenv lib fetchFromGitHub cmake zlib boost179 protobuf sqlite pkg-config geos lz4; };
+  valhalla = (import ./valhalla) { };
+  
+  pkgunstable = import (builtins.fetchGit {
+    url = "https://github.com/NixOS/nixpkgs";
+    ref = "nixos-unstable";
+    rev = "9abb87b552b7f55ac8916b6fc9e5cb486656a2f3";        #"666e1b3f09c267afd66addebe80fb05a5ef2b554"; "nixos-24.11";
+  }) { };
+
+  swig = pkgunstable.swig;
+  protobuf = pkgunstable.protobuf;
+
+  zlib = pkgsStatic.zlib;
+  
 
 in
 
@@ -24,8 +24,15 @@ stdenv.mkDerivation {
   version = "0.0.1";
   src = ./.;
 
-  nativeBuildInputs = [ swig];
-  buildInputs = [ valhalla go protobuf zlib boost179 stdenv.cc.cc.lib];
+  nativeBuildInputs =  [ pkgunstable.swig pkgs.pkg-config pkgs.boost.dev valhalla ];
+  buildInputs =  [
+    pkgunstable.swig
+    valhalla
+    pkgs.go
+    pkgunstable.protobuf
+    zlib 
+    pkgs.boost.dev
+  ];
 
   # preBuildPhase = ''
   #   export PKG_CONFIG_PATH=${pkgs.valhalla}/lib/pkgconfig:$PKG_CONFIG_PATH
@@ -34,14 +41,8 @@ stdenv.mkDerivation {
   buildPhase = ''
 
 
-    # Debug: Show current directory and contents
-    echo "Current directory: $PWD"
-    echo "Parent directory contents:"
-    echo "GOPATH: $GOPATH"
-    # echo "Go version: $(go version)"
-    export GOPATH=$PWD/go
-    ls -l ${valhalla}/lib
-    # ls -l ${valhalla}/include/valhalla/third_party/
+    # export CC="${stdenv.cc.targetPrefix}gcc"
+    # export CXX="${stdenv.cc.targetPrefix}g++"
     
 
     # Generate SWIG bindings
@@ -50,12 +51,13 @@ stdenv.mkDerivation {
     
 
   ${swig}/bin/swig -c++ -v -go -cgo -intgosize 64 \
-    -I${valhalla}/include \
-    -I${swig}/share/swig/${swig.version} \
-    -package govalhalla \
-    -use-shlib \
+    -cpperraswarn \
     -o govalhalla_wrap.cxx \
-    valhalla.i
+    -I${valhalla}/include \
+    -I${protobuf}/include \
+    -I${boost.dev}/include \
+    govalhalla.i
+ 
     
     
 
@@ -63,39 +65,52 @@ stdenv.mkDerivation {
     echo "wrapping shared library cd src ....."
     
 
-    $CXX -fPIC -c govalhalla_wrap.cxx \
+    $CXX -fPIC -std=c++17 -c -v govalhalla_wrap.cxx \
+        -I. \
+        -I${valhalla}/include \
+        -I${valhalla}/include/valhalla/third_party \
+        -I${protobuf}/include \
+        -I${boost.dev}/include \
+        -I${go}/share/go/src/runtime/cgo \
+        -I${valhalla}/include/valhalla/proto
+
+    echo "Compiling govalhalla_actor.cpp..."
+
+    $CXX -fPIC -std=c++17 -c govalhalla_actor.cpp \
       -I. \
       -I${valhalla}/include \
-      -I${valhalla}/include/valhalla/third_party  \
+      -I${valhalla}/include/valhalla/third_party \
       -I${protobuf}/include \
+      -I${boost.dev}/include \
       -I${go}/share/go/src/runtime/cgo \
-      -I${boost179}/include \
-      -I${zlib}/include \
-      -std=c++17 
+      -I${valhalla}/include/valhalla/proto
 
-    echo "Compiling shared library cd src ....."
+    echo "Linking final shared library..."
 
     ls -l
 
-    $CXX -shared govalhalla_wrap.o \
-      -o libvalhalla_go.so \
-      -Wl,--whole-archive -L${valhalla}/lib -lvalhalla -Wl,--no-whole-archive \
-      -L${protobuf}/lib \
-      -L${boost179}/lib \
-      -std=c++17 \
-      -Wl,-Bdynamic -lpthread -lz -lprotobuf -lboost_system -lboost_filesystem\
+    $CXX -shared  -fPIC  govalhalla_actor.o govalhalla_wrap.o  \
+      -o libgovalhalla.so \
+      -L${valhalla}/lib \
+      -L${boost.dev}/include \
+      -L${go}/share/go/src/runtime/cgo \
+      -Wl,-Bstatic \
+      -lvalhalla \
+      -lz \
+      -Wl,-Bdynamic \
+      -lpthread \
       -Wl,--verbose
   '';
 
   installPhase = ''
     mkdir -p $out/{lib,govalhalla}
-    cp libvalhalla_go.so $out/lib/
+    cp libgovalhalla.so $out/lib/
+    cp govalhalla_wrap.cxx $out/lib/
     cp -r *.go $out/govalhalla/
+
+    # cp govalhalla_wrap.cxx $out/govalhalla/
     # cp -r ${valhalla}/include/proto/*.go $out/valhalla/
   '';
 
-  # postFixup = ''
-  #   patchelf --set-rpath "${lib.makeLibraryPath [protobuf boost179 valhalla zlib]}:$out/lib" $out/lib/libvalhalla_go.so
-  # '';
 
 }

@@ -1,70 +1,78 @@
-{ lib
-, stdenv
-, boost179
-, cmake
-, fetchFromGitHub
-, zlib
-, protobuf
-, sqlite
-, geos
-, pkg-config
-, lz4
-, ...
-}:
+{
+  pkgs ? import <nixpkgs> { },
+}: with pkgs;
 
-
-
-stdenv.mkDerivation rec {
-   name = "valhalla";
-  rev= "3.5.1";
+stdenv.mkDerivation (finalAttrs: {
+  pname = "valhalla";
+  version = "3.5.1";
 
   src = fetchFromGitHub {
-    inherit rev;
     owner = "valhalla";
     repo = "valhalla";
-    # rev = "${rev}";
-    sha256 = "sha256-v/EwoJA1j8PuF9jOsmxQL6i+MT0rXbyLUE4HvBHUWDo=";
+    rev = finalAttrs.version;
+    hash = "sha256-v/EwoJA1j8PuF9jOsmxQL6i+MT0rXbyLUE4HvBHUWDo=";
     fetchSubmodules = true;
   };
 
+  nativeBuildInputs = [
+    cmake
+    pkg-config
+  ];
 
+  buildInputs = [
+    boost.dev
+    protobuf
+    geos
+    zlib
+    lz4
+    pkg-config
+  ];
+
+  # PKG_CONFIG_PATH = "${pkgs.valhalla}/lib/pkgconfig";
+  # "-DENABLE_STATIC_LIBRARY_MODULES=ON"
   cmakeFlags = [
-    "-DENABLE_CCACHE=OFF"
-    "-DCMAKE_BUILD_TYPE=Release"
-    "-DBUILD_SHARED_LIBS=OFF"
-    "-DENABLE_STATIC_LIBRARY_MODULES=ON"
-    "-DENABLE_BENCHMARKS=OFF"
-    "-DENABLE_PYTHON_BINDINGS=OFF"
     "-DENABLE_TESTS=OFF"
+    "-DENABLE_BENCHMARKS=OFF"
+    "-DENABLE_CCACHE=OFF"
+    "-DENABLE_SINGLE_FILES_WERROR=OFF"
+    "-DENABLE_EXAMPLES=OFF"
+    "-DENABLE_PYTHON_BINDINGS=OFF"
     "-DENABLE_TOOLS=OFF"
     "-DENABLE_SERVICES=OFF"
     "-DENABLE_HTTP=OFF"
     "-DENABLE_DATA_TOOLS=OFF"
-  ];
-
-  nativeBuildInputs = [ cmake protobuf ];
-
-  buildInputs = [
-    zlib
-    boost179
-    sqlite
-    geos
-    pkg-config
-    lz4
-    protobuf
+    "-DCMAKE_BUILD_TYPE=Release"
+    "-DCMAKE_POSITION_INDEPENDENT_CODE=ON"
     
   ];
 
+  # env.NIX_CFLAGS_COMPILE = toString [
+  #   # Needed for date submodule with GCC 12 https://github.com/HowardHinnant/date/issues/750
+  #   "-Wno-error=stringop-overflow"
+  #   "-std=c++17" 
+  # ];
+
+  #  env.CMAKE_CXX_FLAGS = "-DCMAKE_CXX_STANDARD=17";
   # postFixup = ''
-  #   patchelf --set-rpath "${lib.makeLibraryPath buildInputs}:$out/lib" $out/lib/libvalhalla.so
+  #   substituteInPlace "$out"/lib/pkgconfig/libvalhalla.pc \
+  #     --replace '=''${prefix}//' '=/' \
+  #     --replace '=''${exec_prefix}//' '=/'
   # '';
 
-  # install necessary headers
-  # postInstall = ''
-  #   mkdir -p $out/{include,proto}
-  #   cp -r $src/third_party/rapidjson/include/* $out/include
-  #   cp -r $src/third_party/date/include/* $out/include
-  #   cp -r $src/proto/* $out/proto
-  # '';
+  passthru.tests = {
+    pkg-config = testers.testMetaPkgConfig finalAttrs.finalPackage;
+  };
 
-}
+  postInstall = ''
+    cp -r $out/include/valhalla/third_party/* $out/include/
+  '';
+
+  meta = with lib; {
+    changelog = "https://github.com/valhalla/valhalla/blob/${finalAttrs.src.rev}/CHANGELOG.md";
+    description = "Open Source Routing Engine for OpenStreetMap";
+    homepage = "https://valhalla.readthedocs.io/";
+    license = licenses.mit;
+    maintainers = [ maintainers.Thra11 ];
+    platforms = platforms.linux;
+  };
+})

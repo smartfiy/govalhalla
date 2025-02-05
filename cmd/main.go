@@ -2,28 +2,40 @@ package main
 
 import (
 	"fmt"
-	"govalhallatest/build/result/govalhalla"
+	"govalhallatest/result/govalhalla"
 )
 
 func main() {
+	config := `{
+    "mjolnir": {
+        "tile_dir": "/path/to/valhalla_tiles"
+    },
+    "loki": {
+        "actions": ["route", "locate"]
+    }
+}`
 
-	ptr := govalhalla.ActorWrapperNewActor(Config, true)
-	actorWrapper := govalhalla.SwigcptrActorWrapper(ptr)
+	actor := govalhalla.NewActor(config, true)
+
+	// actor := govalhalla.SwigcptrActorWrapper(actorPtr.Swigcptr())
+	// actor := govalhalla.ActorWrapperNewActor(Config, true)
 	// actor := govalhalla.NewActor_t(Config, true)
 
-	if actorWrapper == 0 {
-		fmt.Println("Error creating actor:")
-		return
-	}
-	result := actorWrapper.Status("")
-	if result.GetSecond() != "" {
-		fmt.Println("Error creating actor: %w", result.GetSecond())
-		return
-	}
-	fmt.Println("Actor created successfully: %w", result.GetFirst())
+	// if actorWrapper == 0 {
+	// 	fmt.Println("Error creating actor:")
+	// 	return
+	// }
+	result := actor.Status(actor, "", func() {})
+	// result := actorWrapper.Status("", func(){}
+	// if result.GetSecond() != "" {
+	// 	fmt.Println("Error creating actor: %w", result.GetSecond())
+	// 	return
+	// }
+	fmt.Println("Actor created successfully: %w", result)
+	// govalhalla.GoCleanup(actor)
 }
 
-const Config string = `
+const Config3 string = `
 {
   "mjolnir": {
     "max_cache_size": 1000000000,
