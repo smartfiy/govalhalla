@@ -3,103 +3,59 @@
 }: with pkgs;
 
 let
+
   valhalla = (import ./valhalla) { };
-  
-  pkgunstable = import (builtins.fetchGit {
-    url = "https://github.com/NixOS/nixpkgs";
-    ref = "nixos-unstable";
-    rev = "9abb87b552b7f55ac8916b6fc9e5cb486656a2f3";        #"666e1b3f09c267afd66addebe80fb05a5ef2b554"; "nixos-24.11";
-  }) { };
-
-  swig = pkgunstable.swig;
-  protobuf = pkgunstable.protobuf;
-
-  zlib = pkgsStatic.zlib;
-  
+  zlib = pkgs.pkgsStatic.zlib;
+  lz4 = pkgs.pkgsStatic.lz4;
 
 in
-
 stdenv.mkDerivation {
-  pname = "govalhalla"; #"govalhalla-${valhallaCustom.rev}";
+  pname = "govalhalla";
   version = "0.0.1";
   src = ./.;
 
-  nativeBuildInputs =  [ pkgunstable.swig pkgs.pkg-config pkgs.boost.dev valhalla ];
-  buildInputs =  [
-    pkgunstable.swig
-    valhalla
-    pkgs.go
-    pkgunstable.protobuf
-    zlib 
-    pkgs.boost.dev
-  ];
-
-  # preBuildPhase = ''
-  #   export PKG_CONFIG_PATH=${pkgs.valhalla}/lib/pkgconfig:$PKG_CONFIG_PATH
-  # '';
+  nativeBuildInputs = [ swig pkg-config valhalla ]; # valhalla is a build-time dependency
+  buildInputs = [ swig valhalla go protobuf zlib lz4 boost.dev ]; # These are runtime dependencies
 
   buildPhase = ''
-
-
-    # export CC="${stdenv.cc.targetPrefix}gcc"
-    # export CXX="${stdenv.cc.targetPrefix}g++"
-    
-
     # Generate SWIG bindings
-    echo "Generating SWIG bindings: ${swig}/share/swig/${swig.version}"
-    echo "Compiler : $CXX"
-    
+    echo "Generating SWIG bindings: ${swig}/bin/swig (version: ${swig.version})"
+    echo "Compiler: $CXX"
 
-  ${swig}/bin/swig -c++ -v -go -cgo -intgosize 64 \
-    -cpperraswarn \
-    -o govalhalla_wrap.cxx \
-    -I${valhalla}/include \
-    -I${protobuf}/include \
-    -I${boost.dev}/include \
-    govalhalla.i
- 
-    
-    
+    ${swig}/bin/swig -c++ -v -go -cgo -intgosize 64 \
+      -o govalhalla_wrap.cxx \
+      govalhalla.i
 
     # Compile shared library
-    echo "wrapping shared library cd src ....."
-    
-
+    echo "Compiling govalhalla_wrap.cxx..."
     $CXX -fPIC -std=c++17 -c -v govalhalla_wrap.cxx \
-        -I. \
-        -I${valhalla}/include \
-        -I${valhalla}/include/valhalla/third_party \
-        -I${protobuf}/include \
-        -I${boost.dev}/include \
-        -I${go}/share/go/src/runtime/cgo \
-        -I${valhalla}/include/valhalla/proto
+        -I${valhalla}/third_party \ # Access third_party correctly
+        -I${boost}/include \
+        -I${go}/share/go/src/runtime/cgo
 
     echo "Compiling govalhalla_actor.cpp..."
-
     $CXX -fPIC -std=c++17 -c govalhalla_actor.cpp \
-      -I. \
-      -I${valhalla}/include \
-      -I${valhalla}/include/valhalla/third_party \
-      -I${protobuf}/include \
-      -I${boost.dev}/include \
-      -I${go}/share/go/src/runtime/cgo \
-      -I${valhalla}/include/valhalla/proto
+      -I${boost}/include \
+      -I${go}/share/go/src/runtime/cgo
 
     echo "Linking final shared library..."
 
-    ls -l
-
-    $CXX -shared  -fPIC  govalhalla_actor.o govalhalla_wrap.o  \
+    $CXX -shared -fPIC govalhalla_actor.o govalhalla_wrap.o \
       -o libgovalhalla.so \
       -L${valhalla}/lib \
-      -L${boost.dev}/include \
+      -L${boost}/lib \
       -L${go}/share/go/src/runtime/cgo \
       -Wl,-Bstatic \
       -lvalhalla \
       -lz \
+      -llz4 \
+      -lprotobuf \
       -Wl,-Bdynamic \
-      -lpthread \
-      -Wl,--verbose
+      -lstdc++ \
+      -lgcc_s \
+      -lgcc \
+      -lpthread
+
   '';
 
   installPhase = ''
@@ -107,10 +63,5 @@ stdenv.mkDerivation {
     cp libgovalhalla.so $out/lib/
     cp govalhalla_wrap.cxx $out/lib/
     cp -r *.go $out/govalhalla/
-
-    # cp govalhalla_wrap.cxx $out/govalhalla/
-    # cp -r ${valhalla}/include/proto/*.go $out/valhalla/
   '';
-
-
 }

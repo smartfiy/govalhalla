@@ -14,3 +14,5 @@ build/default.backup
 build/result
 main/config.json.go
 main/main.go
+output3.txt
+output4.txt
