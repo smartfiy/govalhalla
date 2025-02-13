@@ -7,6 +7,8 @@ stdenv.mkDerivation (finalAttrs: {
   pname = "valhalla";
   version = "3.5.1";
 
+  
+
   src = fetchFromGitHub {
     owner = "valhalla";
     repo = "valhalla";
@@ -15,19 +17,24 @@ stdenv.mkDerivation (finalAttrs: {
     fetchSubmodules = true;
   };
 
+
   nativeBuildInputs = [
     cmake
     pkg-config
+    
   ];
 
   buildInputs = [
-    boost.dev
+    boost179
     protobuf
-    geos
-    zlib
     lz4
-    pkg-config
+    zlib
+    
+    # gcc.cc.lib
   ];
+
+  # CXXFLAGS="-fexceptions";
+  
 
   # PKG_CONFIG_PATH = "${pkgs.valhalla}/lib/pkgconfig";
   # "-DENABLE_STATIC_LIBRARY_MODULES=ON"
@@ -44,14 +51,18 @@ stdenv.mkDerivation (finalAttrs: {
     "-DENABLE_DATA_TOOLS=OFF"
     "-DCMAKE_BUILD_TYPE=Release"
     "-DCMAKE_POSITION_INDEPENDENT_CODE=ON"
+    "-DCMAKE_CXX_STANDARD=17"
     
   ];
 
-  # env.NIX_CFLAGS_COMPILE = toString [
-  #   # Needed for date submodule with GCC 12 https://github.com/HowardHinnant/date/issues/750
-  #   "-Wno-error=stringop-overflow"
-  #   "-std=c++17" 
-  # ];
+ postUnpack = ''
+  # Copy files to tyr module
+  cp ${../govalhalla_actor.cpp} $sourceRoot/src/tyr/govalhalla_actor.cc
+  cp ${../govalhalla_actor.h} $sourceRoot/valhalla/tyr/govalhalla_actor.h
+
+  # Add to sources list
+  sed -i '/set(sources/a \ \ govalhalla_actor.cc' $sourceRoot/src/tyr/CMakeLists.txt
+  '';
 
   #  env.CMAKE_CXX_FLAGS = "-DCMAKE_CXX_STANDARD=17";
   # postFixup = ''

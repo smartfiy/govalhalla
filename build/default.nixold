@@ -1,0 +1,68 @@
+let
+
+  pkgunstable = import (builtins.fetchGit {
+    url = "https://github.com/NixOS/nixpkgs";
+    ref = "nixos-unstable";
+    rev = "9abb87b552b7f55ac8916b6fc9e5cb486656a2f3";
+  }) { 
+   
+  #  overlays = [(self: super: {
+  #     Stdenv = super.stdenv.override {
+  #       name = "clangStdenv";
+  #       cc = super.clang;
+  #       cxx = super.clangxx;
+  #     };
+  #   })];
+
+  };
+
+  pkgs = import (builtins.fetchGit {
+    url = "https://github.com/NixOS/nixpkgs";
+    ref = "nixos-24.05";
+    rev = "087f43a1fa052b17efd441001c4581813c34bc19";
+  }) { 
+
+    
+    overlays  = [ # Make this a list
+      (self: super: {
+
+        swig = pkgunstable.swig;  # Use swig from unstable
+
+        
+
+        lz4 = pkgunstable.lz4.overrideAttrs (oldAttrs: {
+          cmakeFlags = (oldAttrs.cmakeFlags or []) ++ [
+            "-DBUILD_SHARED_LIBS=OFF"
+            "-DCMAKE_POSITION_INDEPENDENT_CODE=ON"
+          ];
+        });  # Use lz4 from unstable
+
+        # zlib = super.zlib.overrideAttrs (oldAttrs: {
+        #   static = true;
+        #   shared = false;
+        # });
+
+        # abseil-cpp = pkgunstable.abseil-cpp.override {
+        #   static = true;
+          
+        # };
+        
+        boost = pkgunstable.boost.override {
+          enableStatic = true;
+          enableShared = false;
+          python = null;
+        };
+        
+        protobuf = pkgunstable.protobuf.override {
+          enableShared = false;
+          abseil-cpp = pkgunstable.abseil-cpp.override {
+          static = true;
+          };
+        };
+        
+      }) # Close the function definition
+    ]; # Close the list
+
+  };
+
+in pkgs.callPackage ./bindings/default.nix {}

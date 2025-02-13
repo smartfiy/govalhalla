@@ -1,33 +1,77 @@
 let
 
-  pkgunstable = import (builtins.fetchGit {
-    url = "https://github.com/NixOS/nixpkgs";
-    ref = "nixos-unstable";
-    rev = "9abb87b552b7f55ac8916b6fc9e5cb486656a2f3";
-  }) { };
+  # pkgunstable = import (builtins.fetchGit {
+  #   url = "https://github.com/NixOS/nixpkgs";
+  #   ref = "nixos-unstable";
+  #   rev = "9abb87b552b7f55ac8916b6fc9e5cb486656a2f3";
+  # }) { 
+   
+  # #  overlays = [(self: super: {
+  # #     Stdenv = super.stdenv.override {
+  # #       name = "clangStdenv";
+  # #       cc = super.clang;
+  # #       cxx = super.clangxx;
+  # #     };
+  # #   })];
+
+  # };
 
   pkgs = import (builtins.fetchGit {
     url = "https://github.com/NixOS/nixpkgs";
-    ref = "nixos-24.05";
-    rev = "087f43a1fa052b17efd441001c4581813c34bc19";
+    ref = "nixos-unstable";
+    rev = "9abb87b552b7f55ac8916b6fc9e5cb486656a2f3";
   }) { 
 
+    # config.replaceStdenv = { pkgs, ... }: pkgs.gcc13Stdenv;
     overlays  = [ # Make this a list
       (self: super: {
-        swig = pkgunstable.swig;  # Use swig from unstable
 
-        protobuf = pkgunstable.protobuf.overrideAttrs (oldAttrs: { # Use super.protobuf
+        # swig = pkgunstable.swig;  # Use swig from unstable
+
+        # stdenv = super.stdenv.override {
+        #   cc = super.gcc12;
+        #   # cxx = super.gcc12;
+        # };
+
+
+        lz4 = super.lz4.overrideAttrs (oldAttrs: {
+          stdenv = super.gcc13Stdenv;
           cmakeFlags = (oldAttrs.cmakeFlags or []) ++ [
-            "-Dprotobuf_BUILD_SHARED_LIBS=OFF"
-            "-Dprotobuf_BUILD_TESTS=OFF"
-            "-Dprotobuf_BUILD_EXAMPLES=OFF"
+            "-DBUILD_SHARED_LIBS=OFF"
+            "-DCMAKE_POSITION_INDEPENDENT_CODE=ON"
           ];
-        });
+         
+        });  # Use lz4 from unstable
+
+        # zlib = super.zlib.overrideAttrs (oldAttrs: {
+        #   static = true;
+        #   shared = false;
+        # });
+
+        # abseil-cpp = pkgunstable.abseil-cpp.override {
+        #   static = true;
+          
+        # };
+        
+        boost = super.boost.override {
+          # stdenv = super.gcc13Stdenv;
+          enableStatic = true;
+          enableShared = false;
+          python = null;
+        };
+        
+        protobuf = super.protobuf.override {
+          # stdenv = super.gcc13Stdenv;
+          enableShared = false;
+          abseil-cpp = super.abseil-cpp.override {
+          stdenv = super.gcc13Stdenv;
+          static = true;
+          };
+        };
+        
       }) # Close the function definition
     ]; # Close the list
 
   };
 
-in
-
-  pkgs.callPackage ./bindings/default.nix {}
+in pkgs.callPackage ./bindings/default.nix {}

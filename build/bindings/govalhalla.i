@@ -1,6 +1,6 @@
 %module govalhalla
-%include <std_string.i>
-%include <std_pair.i>
+
+// Include standard SWIG interfaces
 
 
 %{
@@ -8,57 +8,35 @@
 #include <string>
 #include <memory>
 #include <functional>
-// #include <valhalla/tyr/actor.h>
-// #include <valhalla/baldr/graphreader.h>
-// #include <valhalla/proto/api.pb.h>
-#include "govalhalla_actor.h"
-// using namespace valhalla;
-// using namespace valhalla::baldr;
-// using namespace valhalla::tyr;
-
+#include "valhalla/tyr/actor.h"
+#include <valhalla/baldr/graphreader.h>
+#include <valhalla/proto/api.pb.h>
+#include "valhalla/tyr/govalhalla_actor.h"
 %}
 
+%include <std_string.i>
+%include <std_pair.i>
+// Handle std::function
+%typemap(gotype) const std::function<void()>* "uintptr"
+%typemap(in,numinputs=0) const std::function<void()>* {
+    $1 = nullptr;
+}
 
-// %ignore tile_extract_t;
-// %ignore SearchFilter;
-// %ignore rapidjson::get_optional;
-// %ignore std::hash<valhalla::baldr::Location>;
+// Handle valhalla::Api
+%typemap(gotype) valhalla::Api* "uintptr"
+%typemap(in,numinputs=0) valhalla::Api* {
+    $1 = nullptr;
+}
 
-// Expose std::pair<std::string, std::string> to hold the result 
-
-typedef std::pair<std::string, std::string> ResponsePair;
-
+// Create the response pair template
 %template(ResponsePair) std::pair<std::string, std::string>;
-// %import <valhalla/baldr/graphreader.h>
-// %import "valhalla/tyr/actor.h" 
-%include "govalhalla_actor.h" 
 
+// Include the actor header
+%include "govalhalla_actor.h"
 
-// %typemap(in) const std::function<void()>* {
-//     $1 = nullptr;
-// }
-
-
-// Expose the ActorWrapper class to 
-// %typemap(type) std::uintptr_t "uintptr"   // Map to 's uintptr type
-// %typemap(in) std::uintptr_t {
-//     $1 = static_cast<std::uintptr_t>($input);
-// }
-// %typemap(out) std::uintptr_t {
-//     $result = static_cast<std::uintptr_t>($1);
-// }
-// class actor_t {
-// // public:
-    
-
-// };
-// }}
-// valhalla::tyr::
-// %include "valhalla/proto/api.pb.h"
-// Declare the namespaces and class before extending
-// Include necessary headers for SWIG parsing
-// %import <valhalla/proto/api.pb.h>
-// %import <valhalla/baldr/graphreader.h>
-// %include <boost/property_tree/ptree.hpp>
-
-
+// CGO preamble
+%insert(go_begin) %{
+/*
+#cgo LDFLAGS: -L -lgovalhalla
+*/
+%}

@@ -1,67 +1,70 @@
-package govalhalla
+package govalhallatest
 
 import (
 	"encoding/json"
+	"govalhallatest/result/govalhalla"
 	"os"
 	"strings"
 	"testing"
 )
 
-// TestConfig provides test configuration for the actor
-var TestConfig = `{
-	"mjolnir": {
-		"tile_dir": "./test/traffic_matcher_tiles"
-	},
-	"loki": {
-		"actions": [
-			"route",
-			"locate",
-			"sources_to_targets",
-			"optimized_route",
-			"isochrone",
-			"trace_route",
-			"trace_attributes",
-			"transit_available",
-			"expansion",
-			"centroid"
-		],
-		"logging": {
-			"long_request": 100.0
-		},
-		"service": {
-			"proxy": "ipc:///tmp/loki"
-		}
-	},
-	"thor": {
-		"logging": {
-			"long_request": 110.0
-		}
-	}
-}`
+// getTestConfig() provides test configuration for the actor
+// var getTestConfig() = `{
+// 	"mjolnir": {
+// 		"tile_dir": "./test/traffic_matcher_tiles"
+// 	},
+// 	"loki": {
+// 		"actions": [
+// 			"route",
+// 			"locate",
+// 			"sources_to_targets",
+// 			"optimized_route",
+// 			"isochrone",
+// 			"trace_route",
+// 			"trace_attributes",
+// 			"transit_available",
+// 			"expansion",
+// 			"centroid"
+// 		],
+// 		"logging": {
+// 			"long_request": 100.0
+// 		},
+// 		"service": {
+// 			"proxy": "ipc:///tmp/loki"
+// 		}
+// 	},
+// 	"thor": {
+// 		"logging": {
+// 			"long_request": 110.0
+// 		}
+// 	}
+// }`
 
 func TestNewActor(t *testing.T) {
-	actor := NewActor(TestConfig, true)
+	actor := govalhalla.NewActor(getTestConfig(), true)
 	if actor == nil {
 		t.Fatal("Failed to create actor")
 	}
-	defer actor.Cleanup()
+	defer govalhalla.DeleteActor(actor) // Cleanup actor
 }
 
 func TestBasicRouting(t *testing.T) {
-	actor := NewActor(TestConfig, true)
+	actor := govalhalla.NewActor(getTestConfig(), true)
 	if actor == nil {
 		t.Fatal("Failed to create actor")
 	}
-	defer actor.Cleanup()
+	defer govalhalla.DeleteActor(actor)
 
 	request := `{
-		"locations": [
-			{"lat": 40.546115, "lon": -76.385076, "type": "break"},
-			{"lat": 40.544232, "lon": -76.385752, "type": "break"}
-		],
-		"costing": "auto"
-	}`
-
+        "locations": [
+            {"lat": 40.546115, "lon": -76.385076, "type": "break"},
+            {"lat": 40.544232, "lon": -76.385752, "type": "break"}
+        ],
+        "costing": "auto",
+        "directions_options": {
+            "units": "miles"
+        }
+    }`
 	// Test route functionality
 	result := actor.Route(request)
 	if result.GetSecond() != "" {
@@ -73,11 +76,11 @@ func TestBasicRouting(t *testing.T) {
 }
 
 func TestTraceAttributes(t *testing.T) {
-	actor := NewActor(TestConfig, true)
+	actor := govalhalla.NewActor(getTestConfig(), true)
 	if actor == nil {
 		t.Fatal("Failed to create actor")
 	}
-	defer actor.Cleanup()
+	defer govalhalla.DeleteActor(actor)
 
 	request := `{
 		"shape": [
@@ -98,11 +101,11 @@ func TestTraceAttributes(t *testing.T) {
 }
 
 func TestTransitAvailable(t *testing.T) {
-	actor := NewActor(TestConfig, true)
+	actor := govalhalla.NewActor(getTestConfig(), true)
 	if actor == nil {
 		t.Fatal("Failed to create actor")
 	}
-	defer actor.Cleanup()
+	defer govalhalla.DeleteActor(actor)
 
 	request := `{
 		"locations": [
@@ -129,11 +132,11 @@ func TestTransitAvailable(t *testing.T) {
 }
 
 func TestStatus(t *testing.T) {
-	actor := NewActor(TestConfig, true)
+	actor := govalhalla.NewActor(getTestConfig(), true)
 	if actor == nil {
 		t.Fatal("Failed to create actor")
 	}
-	defer actor.Cleanup()
+	defer govalhalla.DeleteActor(actor)
 
 	// Test basic status
 	result := actor.Status("")
@@ -150,7 +153,7 @@ func TestStatus(t *testing.T) {
 		t.Errorf("Verbose status request failed: %s", verboseResult.GetSecond())
 	}
 	if !strings.Contains(verboseResult.GetFirst(), "Polygon") {
-		t.Error("Expected 'Polygon' in verbose status response")
+		t.Errorf("Expected 'Polygon' in verbose status response: %s", verboseResult.GetFirst())
 	}
 }
 
